@@ -13,3 +13,5 @@ faker
 fastapi
 uvicorn
 python-dotenv
+sentencepiece
+protobuf
