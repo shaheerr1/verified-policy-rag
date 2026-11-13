@@ -236,3 +236,6 @@ models/
 *.safetensors
 logs/
 .env
+data/parsed/
+data/chunks.jsonl
+data/chunks_*.jsonl
