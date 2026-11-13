@@ -1,0 +1,15 @@
+docling
+langchain
+langchain-docling
+langchain-chroma
+langchain-ollama
+chromadb
+pdfplumber
+transformers
+torch
+presidio-analyzer
+presidio-anonymizer
+faker
+fastapi
+uvicorn
+python-dotenv

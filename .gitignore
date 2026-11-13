@@ -218,3 +218,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+  data/pdfs/
+  *.pdf
+  chroma/
+  .chroma/
+  models/
+  *.safetensors
+# never commit source documents, private data, indexes or models
+data/pdfs/
+data/claims/
+*.pdf
+chroma/
+.chroma/
+models/
+*.safetensors
+logs/
+.env
