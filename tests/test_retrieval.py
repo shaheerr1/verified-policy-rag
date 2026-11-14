@@ -131,6 +131,6 @@ def test_main_set_recall_floor_with_policy_context():
 
 @needs_index
 def test_customer_questions_recall_floor_with_policy_context():
-    """Independent customer questions reached 5/6 at k=5 with the insurer known (problem 20)."""
+    """Independent customer questions reached 15/16 at k=5 with the insurer known (problems 20, 24)."""
     ok, n = _recall(load(HELDOUT), context=True)
-    assert ok >= 6, f"customer questions recall@5 fell to {ok}/{n}"
+    assert ok >= 15, f"customer questions recall@5 fell to {ok}/{n}"
