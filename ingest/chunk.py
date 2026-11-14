@@ -81,12 +81,49 @@ def printed(insurer: str, pdf_pages: list) -> list:
     return [p - off for p in pdf_pages if p - off > 0]
 
 
+
+TIER_NAMES = ["Basic", "Bronze", "Silver", "Gold"]
+
+
+def describe(value: str) -> str:
+    """Turn one table cell into plain words."""
+    v = value.strip()
+    if v.lower() == "not covered":
+        return "is not covered"
+    if v.lower() == "covered":
+        return "is covered"
+    if v.lower().startswith("see your schedule"):
+        return "has its limit shown in your schedule"
+    if v.startswith("£"):
+        return f"is covered up to {v}"
+    return f"is {v}"
+
+
+def row_sentence(row: dict) -> str:
+    """Write a limits table row as plain sentences, grouping tiers that share a value.
+    Customers ask in sentences; a row of cells barely resembles their question."""
+    item = row["item"].split(" (")[0]
+    qualifier = row["item"][len(item):].strip(" ()")
+    subject = f"{item.lower()} ({qualifier} cover)" if qualifier else item.lower()
+    groups = []
+    for tier, key in zip(TIER_NAMES, ["basic", "bronze", "silver", "gold"]):
+        if groups and groups[-1][1] == row[key]:
+            groups[-1][0].append(tier)
+        else:
+            groups.append(([tier], row[key]))
+    parts = []
+    for tiers, value in groups:
+        names = tiers[0] if len(tiers) == 1 else ", ".join(tiers[:-1]) + " and " + tiers[-1]
+        parts.append(f"On Policy Expert {names}, {subject} {describe(value)}.")
+    return " ".join(parts)
+
+
 def csv_chunks(tokenizer) -> list:
     """One chunk per row of the hand-checked Policy Expert limits table."""
     out = []
     for row in csv.DictReader(LIMITS_CSV.open()):
         page = int(row["pdf_page"])
-        text = row["chunk_text"]
+        text = row_sentence(row) + "\n" + row["chunk_text"]  # plain sentences + the exact row
         out.append({
             "insurer": "Policy Expert",
             "source": "policy_expert_limits.csv",
