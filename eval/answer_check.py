@@ -28,9 +28,12 @@ def main(only, set_name):
         for c in checked:
             print(f"    {c['status']:<15} {c['text'][:150]}")
         print("  CUSTOMER SEES:", " ".join(c["text"] for c in v["deliver"]) or FALLBACK)
+        if v.get("exceptions"):
+            print("  exception may apply:", v["exceptions"][0]["text"][:160])
         results.append({"id": q["id"], "label": v["label"],
                         "not_in_policy": result["answer"]["not_in_policy"],
-                        "checked": checked, "deliver": v["deliver"]})
+                        "checked": checked, "deliver": v["deliver"],
+                        "exceptions": v.get("exceptions", [])})
     out = Path(f"logs/answer_check_{set_name}.json")
     out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps(results, indent=2, ensure_ascii=False))
