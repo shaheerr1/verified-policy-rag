@@ -18,7 +18,7 @@ def main(only, set_name):
         if only and q["id"] not in only:
             continue
         t = time.time()
-        result = generate(q["question"], insurer=q["insurer"])
+        result = generate(q["question"], insurer=q["insurer"], profile=q.get("profile"))
         checked = check_answer(result)
         v = final_label(result, checked)
         print(f"\n[{q['id']}] {q['insurer']} | {v['label']} | {time.time() - t:.0f}s")
