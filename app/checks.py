@@ -1,4 +1,5 @@
 """Checks that run on every generated answer before a customer sees it."""
+import difflib
 import re
 from functools import lru_cache
 
@@ -27,7 +28,9 @@ NUM_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "
              "twenty": 20, "thirty": 30, "sixty": 60, "ninety": 90}
 EXCEPTION = re.compile(r"\b(unless|except|you do not need to|you don't need to|does not apply)\b", re.I)
 EXC_MIN_OVERLAP = 2
-BLOCK = {"uncited", "bad_citation", "unsupported", "contradicted", "off_topic", "number_mismatch"}
+QUOTE_MIN = 0.9
+BLOCK = {"bad_quote", "uncited", "bad_citation", "unsupported", "contradicted", "off_topic", "number_mismatch"}
+NOT_FOUND = "I couldn't find this in your policy wording. Please speak to an adviser."
 FALLBACK = "I couldn't verify an answer from your policy wording. Please speak to an adviser."
 
 
@@ -93,7 +96,25 @@ def score(ids, hits_by_id, hypothesis):
     return best, contra
 
 
-def check_sentence(sentence, hits_by_id):
+def squash(t):
+    return re.sub(r"\s+", " ", t.lower()).strip(" .;:")
+
+
+def contains(clause, quote):
+    c, q = squash(clause), squash(quote)
+    if not q:
+        return False
+    if q in c:
+        return True
+    qt, ct = q.split(), c.split()
+    n = len(qt)
+    if n > len(ct):
+        return False
+    best = max(difflib.SequenceMatcher(None, qt, ct[i:i + n]).ratio() for i in range(len(ct) - n + 1))
+    return best >= QUOTE_MIN
+
+
+def check_sentence(sentence, hits_by_id, quotes=()):
     cites = sentence["citations"]
     if not cites:
         return {"status": "uncited"}
@@ -101,6 +122,13 @@ def check_sentence(sentence, hits_by_id):
     if missing:
         return {"status": "bad_citation", "missing": missing}
     hypothesis = ANSWER_WORD.sub("", sentence["text"]).strip()
+    if quotes:
+        cands = [(quotes[0]["clause"], " ".join(q["text"] for q in quotes))] + [(q["clause"], q["text"]) for q in quotes]
+        scores = nli_batch([t for _, t in cands], hypothesis)
+        i = max(range(len(cands)), key=lambda j: scores[j]["entailment"])
+        if scores[i]["entailment"] >= ENTAIL_MIN:
+            return {"status": "supported", "best": cands[i][0], "evidence": cands[i][1], "via": "quote",
+                    "entailment": round(scores[i]["entailment"], 2), "contradiction": round(scores[i]["contradiction"], 2)}
     best, contra = score(cites, hits_by_id, hypothesis)
     if best["entailment"] >= ENTAIL_MIN:
         status = "supported"
@@ -168,8 +196,13 @@ def check_answer(result):
         if a["not_in_policy"] and not s["citations"]:
             checked.append({**s, "status": "refusal"})
             continue
-        c = {**s, **check_sentence(s, hits_by_id)}
-        if keys and c["status"] in ("supported", "miscited") and not on_topic(c["evidence"], keys):
+        quotes = a.get("quotes", [])
+        used = [quotes[i] for i in s.get("quotes", [])]
+        if any(not contains(hits_by_id.get(q["clause"], {}).get("text", ""), q["text"]) for q in used):
+            checked.append({**s, "status": "bad_quote"})
+            continue
+        c = {**s, **check_sentence(s, hits_by_id, used)}
+        if keys and c["status"] in ("supported", "miscited") and c.get("best") != "profile" and not on_topic(c["evidence"], keys):
             c["status"] = "off_topic"
         if c["status"] in ("supported", "miscited"):
             bad = check_numbers(c, hits_by_id)
@@ -185,12 +218,15 @@ def verdict(checked):
             c["citations"], c["status"], c["repaired"] = [c["best"]], "supported", True
     blocked = [c for c in checked if c["status"] in BLOCK]
     if checked and all(c["status"] == "refusal" for c in checked):
-        label = "REFUSAL"
+        return {"label": "REFUSAL", "blocked": 0,
+                "deliver": [{"text": NOT_FOUND, "citations": [], "status": "refusal"}]}
+    if any(c["status"] == "refusal" for c in checked):
+        label = "HALLUCINATION"
     elif blocked:
         label = "HALLUCINATION"
     else:
         label = "SUCCESS"
-    deliver = [] if blocked else [c for c in checked if c["status"] not in BLOCK]
+    deliver = [] if blocked or label == "HALLUCINATION" else [c for c in checked if c["status"] not in BLOCK]
     return {"label": label, "blocked": len(blocked), "deliver": deliver}
 
 
