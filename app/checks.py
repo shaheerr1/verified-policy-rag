@@ -28,6 +28,7 @@ NUM_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "
              "twenty": 20, "thirty": 30, "sixty": 60, "ninety": 90}
 EXCEPTION = re.compile(r"\b(unless|except|you do not need to|you don't need to|does not apply)\b", re.I)
 EXC_MIN_OVERLAP = 2
+CLAUSE_ID = re.compile(r"\(?\b(?:(?:as\s+)?(?:under|see|per|in)\s+)?c\d{3,4}\b\)?[,:]?\s*", re.I)
 QUOTE_MIN = 0.9
 BLOCK = {"bad_quote", "uncited", "bad_citation", "unsupported", "contradicted", "off_topic", "number_mismatch"}
 NOT_FOUND = "I couldn't find this in your policy wording. Please speak to an adviser."
@@ -148,6 +149,10 @@ def check_sentence(sentence, hits_by_id, quotes=()):
     return result
 
 
+def strip_ids(text):
+    return re.sub(r"\s{2,}", " ", CLAUSE_ID.sub("", text)).strip()
+
+
 def norm(word):
     w = word.lower().strip(",?.!")
     if w.endswith("'s"):
@@ -158,13 +163,16 @@ def norm(word):
 
 def key_terms(question):
     words = {norm(w) for w in WORD.findall(question) if w.lower() not in STOP}
+    mapped = set()
     for pattern, terms in GLOSSARY:
         pat = pattern if hasattr(pattern, "search") else re.compile(pattern, re.I)
         if pat.search(question):
             for term in (terms if isinstance(terms, (list, tuple)) else [terms]):
-                words |= {norm(t) for t in term.split()}
+                mapped |= {norm(t) for t in term.split()}
     words -= STOP | GENERIC
-    return {w for w in words if len(w) > 2 and policy_uses(w) <= KEY_MAX_USES}
+    mapped -= STOP | GENERIC
+    rare = {w for w in words if len(w) > 2 and policy_uses(w) <= KEY_MAX_USES}
+    return rare | {w for w in mapped if len(w) > 2}
 
 
 def on_topic(evidence, keys):
@@ -193,6 +201,7 @@ def check_answer(result):
     a = result["answer"]
     checked = []
     for s in a["sentences"]:
+        s = {**s, "text": strip_ids(s["text"])}
         if a["not_in_policy"] and not s["citations"]:
             checked.append({**s, "status": "refusal"})
             continue
@@ -227,6 +236,14 @@ def verdict(checked):
     else:
         label = "SUCCESS"
     deliver = [] if blocked or label == "HALLUCINATION" else [c for c in checked if c["status"] not in BLOCK]
+    seen, tidy = set(), []
+    for c in deliver:
+        key = c["text"].strip().lower()
+        if key in seen or key.endswith(":"):
+            continue
+        seen.add(key)
+        tidy.append(c)
+    deliver = tidy
     return {"label": label, "blocked": len(blocked), "deliver": deliver}
 
 

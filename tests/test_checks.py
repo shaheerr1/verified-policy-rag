@@ -99,3 +99,22 @@ def test_refusal_never_shows_model_text():
     v = verdict(checked)
     assert v["label"] == "REFUSAL"
     assert "not covered" not in v["deliver"][0]["text"]
+
+
+from app.checks import key_terms, strip_ids
+
+
+def test_clause_ids_are_removed_from_answers():
+    assert strip_ids("Under c0008, you have up to £2,500 towards it.") == "you have up to £2,500 towards it."
+    assert strip_ids("The excess is £250 (c0412).") == "The excess is £250 ."
+
+
+def test_glossary_terms_always_count_as_key_terms():
+    assert "vehicle" in key_terms("Someone smashed my car window and stole my backpack. Can I claim?")
+
+
+def test_delivered_answer_drops_repeats_and_fragments():
+    checked = [{"text": "You have these benefits:", "citations": ["c1"], "status": "supported"},
+               {"text": "We pay up to £2,500.", "citations": ["c1"], "status": "supported"},
+               {"text": "We pay up to £2,500.", "citations": ["c1"], "status": "supported"}]
+    assert [c["text"] for c in verdict(checked)["deliver"]] == ["We pay up to £2,500."]
