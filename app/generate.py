@@ -6,6 +6,7 @@ import ollama
 
 from app.retrieve import retrieve
 from app.privacy import mask
+from app.profile import profile_hit
 MODEL = "qwen2.5:3b"
 
 
@@ -60,14 +61,19 @@ Rules:
 9. Work in order: first list the IDs of every clause relevant to the question in "relevant_clauses", then write the answer, then decide "not_in_policy".
 10. Keep the policy's own terms for who and what is covered (for example "a member of your family", not "your son"; "contents", not "his laptop"). Each sentence makes one claim and is under 30 words. Do not mention section names or say where something is stated; citations do that."""
 
-def generate(question, insurer=None, k=5):
+def generate(question, insurer=None, k=5, profile=None):
     question = mask(question)
     hits = retrieve(question, k=k, insurer=insurer)
+    note = ""
+    if profile and insurer:
+        hits = hits + [profile_hit(insurer, profile)]
+        note = ("\n\nThe customer's own policy details are in the clause labelled [profile]. "
+                "Answer for this customer's tier and covers, and cite profile for any statement about what they hold.")
     response = ollama.chat(
         model=MODEL,
         messages=[
             {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": f"Policy clauses:\n\n{build_context(hits)}\n\nCustomer question: {question}"},
+            {"role": "user", "content": f"Policy clauses:\n\n{build_context(hits)}{note}\n\nCustomer question: {question}"},
         ],
         format=SCHEMA,
         # options={"temperature": 0, "num_ctx": 8192, "num_predict": 700},
