@@ -72,3 +72,30 @@ def test_exception_matching_customer_situation_is_found():
 def test_unrelated_exception_is_ignored():
     clause = "We don't cover theft unless force or violence was used to enter the building."
     assert not matching_exceptions("Is my dog's vet bill covered?", [clause])
+
+
+from app.profile import describe
+
+
+def test_profile_only_states_missing_covers_when_complete():
+    partial = describe("Uinsure", {"covers": ["Family Legal Expenses"]})
+    full = describe("Policy Expert", {"tier": "Basic", "covers": ["Buildings", "Contents"], "complete": True})
+    assert "not shown" not in partial
+    assert "Policy Expert Basic" in full and "Option A" in full and "not shown" in full
+
+
+from app.checks import contains
+
+
+def test_quote_must_come_from_its_clause():
+    clause = "Section 2 Contents\nWe will pay for loss or damage to contents in halls of residence."
+    assert contains(clause, "We will pay for loss or damage to contents in halls of residence")
+    assert contains(clause, "we will pay for loss or damage to  contents in halls of residence.")
+    assert not contains(clause, "We will pay for loss of your car anywhere in the world")
+
+
+def test_refusal_never_shows_model_text():
+    checked = [{"text": "No, your son's things are not covered.", "citations": [], "status": "refusal"}]
+    v = verdict(checked)
+    assert v["label"] == "REFUSAL"
+    assert "not covered" not in v["deliver"][0]["text"]
