@@ -56,3 +56,19 @@ def test_blocked_condition_withholds_whole_answer():
     checked = [{"text": "Yes, we will pay.", "citations": ["c1"], "status": "supported"},
                {"text": "Not if it was a gift.", "citations": ["c2"], "status": "unsupported"}]
     assert verdict(checked)["deliver"] == []
+
+
+from app.checks import matching_exceptions
+
+
+def test_exception_matching_customer_situation_is_found():
+    clause = ("You must tell us about the work at least 30 days before it starts.\n"
+              "(You do not need to tell us if the work is to replace or refit existing kitchen or bathroom "
+              "fittings and does not involve making any structural changes to walls, ceilings or floors.)")
+    q = "I'm ripping out the old kitchen units and fitting new ones without knocking down any walls. Do I have to tell you?"
+    assert matching_exceptions(q, [clause])
+
+
+def test_unrelated_exception_is_ignored():
+    clause = "We don't cover theft unless force or violence was used to enter the building."
+    assert not matching_exceptions("Is my dog's vet bill covered?", [clause])
