@@ -4,8 +4,8 @@ from functools import lru_cache
 
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-from app.glossary import GLOSSARY, policy_uses
 
+from app.glossary import GLOSSARY, policy_uses
 from app.privacy import leaks
 
 NLI_MODEL = "cross-encoder/nli-deberta-v3-base"
@@ -16,13 +16,20 @@ SIZES = (1, 2, 3, 4, 6, 8)
 UNIT_SPLIT = re.compile(r"\n+|(?<=[a-z]{4}\.)\s+")
 ANSWER_WORD = re.compile(r"^(yes|no|however|additionally|also)[,.]?\s+", re.I)
 WORD = re.compile(r"[a-z0-9£][a-z0-9£,']*", re.I)
-STOP = set("the a an of to and or for in on at by is are be we you your our this that it with as any from not will can if does his her their my starting".split())
+STOP = set("the a an of to and or for in on at by is are be we you your our this that it with as any from not "
+           "will can if does his her their my starting".split())
 KEY_MAX_USES = 20
-GENERIC = set("claim claims cover covered policy insurance pay paid can could would yesterday someone everything back cost get".split())
+GENERIC = set("claim claims cover covered policy insurance pay paid can could would yesterday someone "
+              "everything back cost get".split())
 NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
 NUM_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
              "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "fourteen": 14, "fifteen": 15,
              "twenty": 20, "thirty": 30, "sixty": 60, "ninety": 90}
+EXCEPTION = re.compile(r"\b(unless|except|you do not need to|you don't need to|does not apply)\b", re.I)
+EXC_MIN_OVERLAP = 2
+BLOCK = {"uncited", "bad_citation", "unsupported", "contradicted", "off_topic", "number_mismatch"}
+FALLBACK = "I couldn't verify an answer from your policy wording. Please speak to an adviser."
+
 
 @lru_cache(maxsize=1)
 def nli():
@@ -120,6 +127,7 @@ def norm(word):
     w = w.strip("'")
     return w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith(("ss", "us", "is")) else w
 
+
 def key_terms(question):
     words = {norm(w) for w in WORD.findall(question) if w.lower() not in STOP}
     for pattern, terms in GLOSSARY:
@@ -133,6 +141,7 @@ def key_terms(question):
 
 def on_topic(evidence, keys):
     return bool(keys & {norm(w) for w in WORD.findall(evidence)})
+
 
 def numbers(text):
     vals = set()
@@ -148,6 +157,7 @@ def check_numbers(c, hits_by_id):
     ids = [c["best"]] if c["status"] == "miscited" else c["citations"]
     source = " ".join(hits_by_id[i]["text"] for i in ids if i in hits_by_id)
     return sorted(numbers(c["text"]) - numbers(source))
+
 
 def check_answer(result):
     hits_by_id = {h["id"]: h for h in result["hits"]}
@@ -169,10 +179,6 @@ def check_answer(result):
     return checked
 
 
-BLOCK = {"uncited", "bad_citation", "unsupported", "contradicted", "off_topic"}
-FALLBACK = "I couldn't verify an answer from your policy wording. Please speak to an adviser."
-
-
 def verdict(checked):
     for c in checked:
         if c["status"] == "miscited":
@@ -184,16 +190,35 @@ def verdict(checked):
         label = "HALLUCINATION"
     else:
         label = "SUCCESS"
-    first_ok = bool(checked) and checked[0]["status"] not in BLOCK
     deliver = [] if blocked else [c for c in checked if c["status"] not in BLOCK]
     return {"label": label, "blocked": len(blocked), "deliver": deliver}
 
+
+def matching_exceptions(question, texts):
+    q = {norm(w) for w in content(question)} - GENERIC
+    found = []
+    for t in texts:
+        for u in units(t):
+            if EXCEPTION.search(u):
+                shared = q & {norm(w) for w in content(u)}
+                if len(shared) >= EXC_MIN_OVERLAP:
+                    found.append({"text": u, "shared": sorted(shared)})
+    return found
+
+
 def final_label(result, checked):
     v = verdict(checked)
+    if v["deliver"]:
+        hits_by_id = {h["id"]: h for h in result["hits"]}
+        cited = {i for c in v["deliver"] for i in c["citations"]}
+        exc = matching_exceptions(result["question"], [hits_by_id[i]["text"] for i in cited if i in hits_by_id])
+        if exc:
+            v.update(label="REVIEW", deliver=[], exceptions=exc)
     found = leaks([c["text"] for c in v["deliver"]], [h["text"] for h in result["hits"]])
     if found:
         v.update(label="UNSAFE", deliver=[], pii=sorted(set(found)))
     return v
+
 
 if __name__ == "__main__":
     import sys
@@ -206,15 +231,16 @@ if __name__ == "__main__":
     print("   key terms:", sorted(key_terms(question)))
     for s in checked:
         flag = "OK" if s["status"] in ("supported", "refusal") else "!!"
-        print(f"{flag} {s['status']:<13} {s['text']}")
+        print(f"{flag} {s['status']:<15} {s['text']}")
         if "entailment" in s:
             print(f"     {s['best']}  entail {s['entailment']}  contra {s['contradiction']}")
             print(f"     evidence: {s['evidence'][:200]}")
-
-    v = verdict(checked)
+    v = final_label(result, checked)
     print(f"\n== {v['label']}  ({v['blocked']} sentence(s) blocked)")
     print("CUSTOMER SEES:")
     for c in v["deliver"]:
         print(f"  {c['text']}  [{', '.join(c['citations'])}]" + ("  (citation repaired)" if c.get("repaired") else ""))
     if not v["deliver"]:
         print("  " + FALLBACK)
+    if v.get("exceptions"):
+        print("  exception may apply:", v["exceptions"][0]["text"][:160])
