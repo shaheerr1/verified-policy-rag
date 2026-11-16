@@ -1,5 +1,7 @@
 # Verified Policy RAG
 
+**Live demo (recorded runs):** https://verified-policy-rag-static.vercel.app
+
 A fully local question answering system over UK home insurance policy wordings, built so that customer data never leaves the machine and no unverified answer reaches a customer.
 
 It runs on an 8 GB laptop with no cloud APIs. Every sentence of every answer is checked against the policy before a customer can see it, and anything that fails is referred to a human adviser instead.
