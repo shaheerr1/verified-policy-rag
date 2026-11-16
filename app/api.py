@@ -32,7 +32,12 @@ def ask(req: Ask):
     hits = {h["id"]: h for h in result["hits"]}
 
     def pages(ids):
-        return ", ".join(p for p in (page_of(hits[i]) for i in ids if i in hits) if p)
+        seen = []
+        for i in ids:
+            for p in (page_of(hits[i]).split(", ") if i in hits else []):
+                if p and p not in seen:
+                    seen.append(p)
+        return ", ".join(seen)
 
     return {
         "label": v["label"],
