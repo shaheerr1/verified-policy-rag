@@ -243,7 +243,15 @@ python -m spacy download en_core_web_sm
 ollama pull qwen2.5:3b && ollama pull nomic-embed-text
 ```
 
-Policy PDFs are not included. Place your own copies in `data/pdfs/`, then:
+Policy PDFs are not included, because they belong to the insurers. Download the public versions into `data/pdfs/`:
+
+| Insurer | Document | Link |
+|---|---|---|
+| Policy Expert | Home insurance policy wording, 2026 (40 pages) | [PDF](https://docs.policyexpert.co.uk/home/qgl16/home_pebasichome_wording_2026a.pdf) |
+| Uinsure | Home insurance policy wording (64 pages) | [PDF](https://www.themarsden.co.uk/files/insurance/policy-documents/uinsure-home-insurance-policy-wording.pdf) |
+| Covéa | Executive Home policy wording (74 pages) | [PDF](https://www.howdeninsurance.co.uk/media/tbxele3w/05-24-executive-home-policy.pdf) |
+
+Then:
 
 ```bash
 python -m ingest.parse
