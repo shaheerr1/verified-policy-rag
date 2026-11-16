@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verified Policy RAG</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --ink: #1c1d1f; --muted: #6b6d72; --line: #e3e1da;
+    --ok: #1f7a4d; --ok-bg: #e7f4ec; --bad: #b42318; --bad-bg: #fdecea;
+    --warn: #9a6100; --warn-bg: #fdf3e1; --info: #2c4a8a; --info-bg: #e9eef9;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--ink); overflow: hidden;
+         font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  .wrap { max-width: 1080px; height: 100vh; margin: 0 auto; padding: 20px 20px 12px; display: flex; flex-direction: column; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; flex-shrink: 0; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); margin: 4px 0 0; max-width: 640px; }
+  .modes { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .modes button { border: 0; background: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font: inherit; color: var(--muted); }
+  .modes button.on { background: var(--ink); color: #fff; }
+  .modes button:disabled { opacity: .35; cursor: not-allowed; }
+  .notice { margin: 14px 0 0; padding: 9px 14px; border-radius: 10px; background: var(--info-bg); color: var(--info); font-size: 14px; flex-shrink: 0; }
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 20px; margin-top: 16px; flex: 1; min-height: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-height: 0; }
+  .left { display: flex; flex-direction: column; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+  select, textarea { width: 100%; font: inherit; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fff; color: var(--ink); }
+  textarea { height: 96px; resize: none; margin-bottom: 12px; }
+  select { margin-bottom: 6px; }
+  .insurers { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+  .ins { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: #fbfaf7; cursor: pointer; }
+  .ins:hover { border-color: #c9c6bc; }
+  .ins.on { border-color: var(--ink); background: #fff; box-shadow: inset 0 0 0 1px var(--ink); }
+  .ins-name { font-weight: 600; font-size: 13.5px; }
+  .ins-desc { color: var(--muted); font-size: 12px; }
+  .ins a, .src { font-size: 12.5px; color: var(--info); text-decoration: none; white-space: nowrap; }
+  .src { margin-left: 10px; }
+  .hint { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+  .ask { width: 100%; border: 0; background: var(--ink); color: #fff; padding: 11px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer; }
+  .ask:disabled { opacity: .5; cursor: wait; }
+  .examples { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; min-height: 0; padding-right: 4px; }
+  .ex { text-align: left; border: 1px solid var(--line); background: #fbfaf7; border-radius: 10px; padding: 9px 11px; cursor: pointer; font: inherit; font-size: 13.5px; color: var(--ink); flex-shrink: 0; }
+  .ex:hover { border-color: #c9c6bc; }
+  .ex.on { border-color: var(--ink); background: #fff; }
+  .ex b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  #out { overflow-y: auto; }
+  .empty { color: var(--muted); text-align: center; padding: 60px 10px; }
+  .badge { display: inline-block; padding: 5px 11px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .b-ok { background: var(--ok-bg); color: var(--ok); } .b-bad { background: var(--bad-bg); color: var(--bad); }
+  .b-warn { background: var(--warn-bg); color: var(--warn); } .b-info { background: var(--info-bg); color: var(--info); }
+  .section { margin-top: 18px; }
+  .masked { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: #f3f2ee; border-radius: 10px; padding: 10px 12px; }
+  .masked mark { background: var(--warn-bg); color: var(--warn); border-radius: 4px; padding: 0 3px; }
+  .customer { border-left: 3px solid var(--ink); padding: 4px 0 4px 14px; }
+  .customer p { margin: 0 0 8px; }
+  .pg { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+  .fallback { color: var(--muted); font-style: italic; }
+  .sent { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .sent.ok { border-left: 4px solid var(--ok); } .sent.bad { border-left: 4px solid var(--bad); } .sent.neutral { border-left: 4px solid #b9b7af; }
+  .sent .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+  .t-ok { background: var(--ok-bg); color: var(--ok); } .t-bad { background: var(--bad-bg); color: var(--bad); } .t-neutral { background: #efeee9; color: var(--muted); }
+  details { margin-top: 8px; } summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .evidence { margin-top: 6px; font-size: 13px; background: #f7f6f2; border-radius: 8px; padding: 8px 10px; color: #3b3c40; }
+  .exc { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #ccc; border-top-color: var(--ink); border-radius: 50%; animation: s 0.8s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  @keyframes s { to { transform: rotate(360deg); } }
+  footer { margin-top: 10px; color: var(--muted); font-size: 12.5px; flex-shrink: 0; }
+  footer a { color: inherit; }
+  @media (max-width: 860px) {
+    body { overflow: auto; } .wrap { height: auto; } .grid { grid-template-columns: 1fr; }
+    #out, .examples { overflow: visible; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Verified Policy RAG</h1>
+      <p class="sub">Answers UK home insurance questions from the policy wording, fully on a local machine. Every sentence is checked against the policy before a customer sees it.</p>
+    </div>
+    <div class="modes">
+      <button id="m-live">Live (local)</button>
+      <button id="m-replay">Recorded runs</button>
+    </div>
+  </header>
+  <div class="notice" id="notice"></div>
+
+  <div class="grid">
+    <div class="card left">
+      <h2 id="left-title">Ask a question</h2>
+      <div id="live-form">
+        <label>Which insurance policy should it answer from?</label>
+        <input type="hidden" id="insurer" value="Policy Expert">
+        <div class="insurers">
+          <div class="ins on" data-v="Policy Expert"><div><div class="ins-name">Policy Expert</div><div class="ins-desc">Home insurance · Basic to Gold tiers · 40 pages</div></div><a href="https://docs.policyexpert.co.uk/home/qgl16/home_pebasichome_wording_2026a.pdf" target="_blank">PDF ↗</a></div>
+          <div class="ins" data-v="Uinsure"><div><div class="ins-name">Uinsure</div><div class="ins-desc">Home insurance · 64 pages</div></div><a href="https://www.themarsden.co.uk/files/insurance/policy-documents/uinsure-home-insurance-policy-wording.pdf" target="_blank">PDF ↗</a></div>
+          <div class="ins" data-v="Covea"><div><div class="ins-name">Covéa</div><div class="ins-desc">High-value home insurance · 74 pages</div></div><a href="https://www.howdeninsurance.co.uk/media/tbxele3w/05-24-executive-home-policy.pdf" target="_blank">PDF ↗</a></div>
+        </div>
+        <p class="hint">Real, public UK policy wordings. Open the PDF to check any answer yourself. In a live service the policy would come from the customer's account.</p>
+        <label for="q">Question</label>
+        <textarea id="q" placeholder="e.g. My son is moving into university halls. Are his belongings covered?"></textarea>
+        <button class="ask" id="ask">Check answer</button>
+      </div>
+      <div class="examples" id="examples"></div>
+    </div>
+
+    <div class="card" id="out"><div class="empty">Ask a question or pick an example to see the full verification trail.</div></div>
+  </div>
+
+  <footer>Built with Docling, Chroma, Ollama (qwen2.5:3b), DeBERTa NLI and Presidio. Policy wordings are public documents; no customer data is used. <a href="https://github.com/shaheerr1/verified-policy-rag">Source and evaluation on GitHub</a>.</footer>
+</div>
+
+<script>
+const LABELS = {
+  SUCCESS: ["Verified answer", "b-ok"],
+  HALLUCINATION: ["Held back: claims could not be verified", "b-bad"],
+  REVIEW: ["Sent to an adviser: a policy exception may apply", "b-warn"],
+  REFUSAL: ["Not found in the policy", "b-info"],
+  UNSAFE: ["Held back: personal data in the answer", "b-bad"],
+};
+const STATUS = {
+  supported: ["Verified", "ok"], refusal: ["Refusal", "neutral"],
+  unsupported: ["Not supported by the cited clause", "bad"], contradicted: ["Contradicts the policy", "bad"],
+  off_topic: ["True, but not about this question", "bad"], number_mismatch: ["Figure not in the cited clause", "bad"],
+  uncited: ["No citation", "bad"], bad_citation: ["Cites a clause it was not given", "bad"],
+  bad_quote: ["Quote not found in the policy", "bad"],
+};
+const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
+let mode = isLocal ? "live" : "replay";
+let replay = [];
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+const POLICY_PDF = {"Policy Expert": "https://docs.policyexpert.co.uk/home/qgl16/home_pebasichome_wording_2026a.pdf", "Uinsure": "https://www.themarsden.co.uk/files/insurance/policy-documents/uinsure-home-insurance-policy-wording.pdf", "Covea": "https://www.howdeninsurance.co.uk/media/tbxele3w/05-24-executive-home-policy.pdf"};
+function selectInsurer(v) {
+  $("insurer").value = v;
+  document.querySelectorAll(".ins").forEach((x) => x.classList.toggle("on", x.dataset.v === v));
+}
+document.querySelectorAll(".ins").forEach((x) => x.addEventListener("click", (e) => {
+  if (e.target.tagName !== "A") selectInsurer(x.dataset.v);
+}));
+
+function setMode(m) {
+  mode = m;
+  $("m-live").classList.toggle("on", m === "live");
+  $("m-replay").classList.toggle("on", m === "replay");
+  $("live-form").style.display = m === "live" ? "block" : "none";
+  $("left-title").textContent = m === "live" ? "Ask a question" : "Recorded evaluation runs";
+  $("notice").textContent = m === "live"
+    ? "Live mode: everything runs on this machine. No question or answer leaves it. A 3B model on a laptop takes about 15 to 60 seconds."
+    : "Recorded runs: real outputs from the system, replayed here because the live system runs locally by design. Nothing on this page is mocked.";
+  renderExamples();
+}
+$("m-live").disabled = !isLocal;
+$("m-live").onclick = () => setMode("live");
+$("m-replay").onclick = () => setMode("replay");
+
+function renderExamples() {
+  const box = $("examples"); box.innerHTML = "";
+  replay.forEach((r, i) => {
+    const b = el("button", "ex"); b.append(el("b", null, r.title)); b.append(document.createTextNode(r.question));
+    b.onclick = () => {
+      document.querySelectorAll(".ex").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+      if (mode === "replay") render(r.response, r.insurer);
+      else { selectInsurer(r.insurer); $("q").value = r.question; }
+    };
+    box.append(b);
+    if (mode === "replay" && i === 0) b.click();
+  });
+}
+
+function maskedNode(text) {
+  const d = el("div", "masked");
+  text.split(/(<[A-Z_]+>)/).forEach((part) => {
+    if (/^<[A-Z_]+>$/.test(part)) d.append(el("mark", null, part)); else d.append(document.createTextNode(part));
+  });
+  return d;
+}
+
+function render(r, insurer) {
+  const out = $("out"); out.innerHTML = ""; out.scrollTop = 0;
+  const [label, cls] = LABELS[r.label] || [r.label, "b-info"];
+  const head = el("div"); head.append(el("span", "badge " + cls, label));
+  if (insurer) head.append(el("span", "pg", "  " + insurer));
+  if (POLICY_PDF[insurer]) { const a = el("a", "src", "Open the policy PDF ↗"); a.href = POLICY_PDF[insurer]; a.target = "_blank"; head.append(a); }
+  out.append(head);
+
+  const s1 = el("div", "section"); s1.append(el("h2", null, "What the model saw (personal data masked)")); s1.append(maskedNode(r.model_saw)); out.append(s1);
+
+  const s2 = el("div", "section"); s2.append(el("h2", null, "What the customer sees"));
+  const cust = el("div", "customer");
+  if (r.delivered && r.delivered.length) {
+    r.delivered.forEach((d) => { const p = el("p", null, d.text + " "); if (d.pages) p.append(el("span", "pg", "p. " + d.pages)); cust.append(p); });
+  } else cust.append(el("p", "fallback", r.fallback || "Please speak to an adviser."));
+  s2.append(cust); out.append(s2);
+
+  if (r.exceptions && r.exceptions.length) {
+    const s3 = el("div", "section"); s3.append(el("h2", null, "Exception that may apply"));
+    s3.append(el("div", "exc", r.exceptions[0])); out.append(s3);
+  }
+
+  const s4 = el("div", "section"); s4.append(el("h2", null, "Verification trail (adviser view)"));
+  (r.sentences || []).forEach((c) => {
+    const [tag, kind] = STATUS[c.status] || [c.status, "neutral"];
+    const box = el("div", "sent " + kind);
+    const top = el("div", "top"); top.append(el("div", null, c.text)); top.append(el("span", "tag t-" + kind, tag)); box.append(top);
+    if (c.evidence) {
+      const det = el("details"); det.append(el("summary", null, "Policy evidence" + (c.pages ? " (p. " + c.pages + ")" : "")));
+      det.append(el("div", "evidence", c.evidence)); box.append(det);
+    }
+    s4.append(box);
+  });
+  out.append(s4);
+}
+
+$("ask").onclick = async () => {
+  const q = $("q").value.trim(); if (!q) return;
+  const out = $("out"); out.innerHTML = ""; const w = el("div", "empty"); w.append(el("span", "spin")); w.append(document.createTextNode("Retrieving, generating and checking every sentence locally...")); out.append(w);
+  $("ask").disabled = true;
+  try {
+    const res = await fetch("/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q, insurer: $("insurer").value }) });
+    render(await res.json(), $("insurer").value);
+  } catch (e) { out.innerHTML = ""; out.append(el("div", "empty", "Could not reach the local API. Is uvicorn running?")); }
+  $("ask").disabled = false;
+};
+
+fetch("replay.json").then((r) => r.ok ? r.json() : []).then((d) => { replay = d; setMode(mode); }).catch(() => setMode(mode));
+</script>
+</body>
+</html>
