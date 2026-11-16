@@ -150,7 +150,8 @@ def check_sentence(sentence, hits_by_id, quotes=()):
 
 
 def strip_ids(text):
-    return re.sub(r"\s{2,}", " ", CLAUSE_ID.sub("", text)).strip()
+    out = re.sub(r"\s{2,}", " ", CLAUSE_ID.sub("", text))
+    return re.sub(r"\s+([.,;:])", r"\1", out).strip()
 
 
 def norm(word):
