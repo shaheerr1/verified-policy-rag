@@ -1,0 +1,195 @@
+[
+  {
+    "title": "Verified answer across tiers",
+    "insurer": "Policy Expert",
+    "question": "How much cover do I get for contents in outbuildings and theft from outbuildings across Basic, Bronze, Silver, and Gold?",
+    "response": {
+      "label": "SUCCESS",
+      "model_saw": "How much cover do I get for contents in outbuildings and theft from outbuildings across Basic, Bronze, Silver, and Gold?",
+      "delivered": [
+        {
+          "text": "On Policy Expert Basic and Bronze, contents in outbuildings is not covered.",
+          "pages": "4"
+        },
+        {
+          "text": "On Policy Expert Silver, contents in outbuildings is covered up to £2,500.",
+          "pages": "4"
+        },
+        {
+          "text": "On Policy Expert Gold, contents in outbuildings is covered up to £5,000.",
+          "pages": "4"
+        },
+        {
+          "text": "On Policy Expert Silver, theft from outbuildings is covered up to £2,000.",
+          "pages": "4"
+        },
+        {
+          "text": "On Policy Expert Gold, theft from outbuildings is covered up to £3,000.",
+          "pages": "4"
+        }
+      ],
+      "fallback": null,
+      "sentences": [
+        {
+          "text": "On Policy Expert Basic and Bronze, contents in outbuildings is not covered.",
+          "status": "supported",
+          "evidence": "Policy Expert | Contents | Contents in outbuildings | Basic: not covered | Bronze: not covered | Silver: £2,500 | Gold: £5,000 | Deducted from the contents limit, not in addition to it",
+          "pages": "4"
+        },
+        {
+          "text": "On Policy Expert Silver, contents in outbuildings is covered up to £2,500.",
+          "status": "supported",
+          "evidence": "On Policy Expert Silver, contents in outbuildings is covered up to £2,500. On Policy Expert Gold, contents in outbuildings is covered up to £5,000. Policy Expert | Contents | Contents in outbuildings | Basic: not covered | Bronze: not covered | Silver: £2,500 | Gold: £5,000 | Deducted from the contents limit, not in addition to it",
+          "pages": "4"
+        },
+        {
+          "text": "On Policy Expert Gold, contents in outbuildings is covered up to £5,000.",
+          "status": "supported",
+          "evidence": "On Policy Expert Basic and Bronze, contents in outbuildings is not covered. On Policy Expert Silver, contents in outbuildings is covered up to £2,500. On Policy Expert Gold, contents in outbuildings is covered up to £5,000. Policy Expert | Contents | Contents in outbuildings | Basic: not covered | Bronze: not covered | Silver: £2,500 | Gold: £5,000 | Deducted from the contents limit, not in addition to it",
+          "pages": "4"
+        },
+        {
+          "text": "On Policy Expert Silver, theft from outbuildings is covered up to £2,000.",
+          "status": "supported",
+          "evidence": "On Policy Expert Silver, theft from outbuildings is covered up to £2,000. On Policy Expert Gold, theft from outbuildings is covered up to £3,000. Policy Expert | Contents | Theft from outbuildings | Basic: not covered | Bronze: not covered | Silver: £2,000 | Gold: £3,000",
+          "pages": "4"
+        },
+        {
+          "text": "On Policy Expert Gold, theft from outbuildings is covered up to £3,000.",
+          "status": "supported",
+          "evidence": "Policy Expert | Contents | Theft from outbuildings | Basic: not covered | Bronze: not covered | Silver: £2,000 | Gold: £3,000",
+          "pages": "4"
+        }
+      ],
+      "exceptions": []
+    }
+  },
+  {
+    "title": "Verified answer with page citations",
+    "insurer": "Policy Expert",
+    "question": "How long is the repair guarantee for contents and buildings?",
+    "response": {
+      "label": "SUCCESS",
+      "model_saw": "How long is the repair guarantee for contents and buildings?",
+      "delivered": [
+        {
+          "text": "For contents, the repair guarantee is 90 days.",
+          "pages": "36"
+        },
+        {
+          "text": "For buildings, the repair guarantee is 12 months.",
+          "pages": "26"
+        }
+      ],
+      "fallback": null,
+      "sentences": [
+        {
+          "text": "For contents, the repair guarantee is 90 days.",
+          "status": "supported",
+          "evidence": "Section 2 Contents 8. Repair guarantee All repairs carried out by our approved suppliers as a result of an insured claim under this section of your policy are guaranteed for 90 days.",
+          "pages": "36"
+        },
+        {
+          "text": "For buildings, the repair guarantee is 12 months.",
+          "status": "supported",
+          "evidence": "Section 1 Buildings 6. Repair guarantee All repairs carried out by our approved suppliers as a result of an insured claim under this section of your policy are guaranteed for 12 months.",
+          "pages": "26"
+        }
+      ],
+      "exceptions": []
+    }
+  },
+  {
+    "title": "Hallucination caught",
+    "insurer": "Uinsure",
+    "question": "Last night's storm blew down two panels of my garden fence and knocked over my shed. Will my buildings insurance cover the cost of replacing the fence and fixing the shed?",
+    "response": {
+      "label": "HALLUCINATION",
+      "model_saw": "Last night's storm blew down two panels of my garden fence and knocked over my shed. Will my buildings insurance cover the cost of replacing the fence and fixing the shed?",
+      "delivered": [],
+      "fallback": "I couldn't verify an answer from your policy wording. Please speak to an adviser.",
+      "sentences": [
+        {
+          "text": "Yes, the storm damage to the garden fence and shed is covered under Section 1 Buildings and Section 2 Contents.",
+          "status": "contradicted",
+          "evidence": "Smoke damage arising gradually or out of repeated exposure.. 2. Riot, civil commotion and labour or political disturbances and strikes., What is not insured = 2. Loss or damage that is not reported to the police within seven days.. 3. Malicious damage., What is not insured = 3. Malicious damage caused: · by you or your family; · by a person lawfully allowed to be in your home; or · when your home is unoccupied or unfurnished.. 4. The buildings being hit by: · aircraft or other flying objects, or anything dropped from them; · fireworks; · vehicles, trains or trams; · falling aerials, masts or satellite dishes; · falling trees or branches; · animals or birds; or · lamp posts or telegraph poles., What is not insured = 4. Loss or damage · caused by pets; · to aerials, aerial fittings, satellite dishes or masts; · arising from cutting down all or part of a fallen tree or the cost of cutting down all or part of a fallen tree and taking it away, unless the fallen tree has damaged your buildings; or · to hedges, gates and fences.. 5. Storm or flood., What is not insured = 5. Loss or damage · to gates, hedges and fences or swimming-pool, Jacuzzi and hot tub covers; · caused by frost; · caused by subsidence, ground heave or landslip (this damage is covered under cause",
+          "pages": "8, 8, 9, 10, 12, 14"
+        }
+      ],
+      "exceptions": []
+    }
+  },
+  {
+    "title": "Exception sent for review",
+    "insurer": "Policy Expert",
+    "question": "I'm planning to renovate my kitchen next month, just ripping out the old units and fitting new ones without knocking down any walls. Do I have to tell you before the builders start?",
+    "response": {
+      "label": "REVIEW",
+      "model_saw": "I'm planning to renovate my kitchen next month, just ripping out the old units and fitting new ones without knocking down any walls. Do I have to tell you before the builders start?",
+      "delivered": [],
+      "fallback": "I couldn't verify an answer from your policy wording. Please speak to an adviser.",
+      "sentences": [
+        {
+          "text": "You must tell us before the start of any building work, conversions, renovations, demolitions and extensions at your property.",
+          "status": "supported",
+          "evidence": "8. If you are having any building work done. 9. You must tell us before the start of any building work, conversions, renovations, demolitions and extensions at your property. You must tell us about the work at least 30 days before it starts. - (You do not need to tell us if the work is for redecoration only, is routine maintenance or is to replace or refit existing kitchen or bathroom fittings and does not involve making any structural changes to walls, ceilings or floors.)",
+          "pages": "11"
+        }
+      ],
+      "exceptions": [
+        "- (You do not need to tell us if the work is for redecoration only, is routine maintenance or is to replace or refit existing kitchen or bathroom fittings and does not involve making any structural changes to walls, ceilings or floors.)"
+      ]
+    }
+  },
+  {
+    "title": "Personal data masked before the model",
+    "insurer": "Uinsure",
+    "question": "Hi, I'm Sarah Khan at 14 Acacia Avenue, SW1A 1AA, phone 07700 900123. My son is moving into university halls. Are his belongings covered?",
+    "response": {
+      "label": "SUCCESS",
+      "model_saw": "Hi, I'm <PERSON> at 14 Acacia Avenue, <UK_POSTCODE>, phone <PHONE_NUMBER>. My son is moving into university halls. Are his belongings covered?",
+      "delivered": [
+        {
+          "text": "Yes, his belongings are covered under Section 32. Student belongings.",
+          "pages": "27"
+        }
+      ],
+      "fallback": null,
+      "sentences": [
+        {
+          "text": "Yes, his belongings are covered under Section 32. Student belongings.",
+          "status": "supported",
+          "evidence": "32. Student belongings. We will pay for loss or damage as a result of causes 1 to 9 of this section, to contents belonging to or the responsibility of you or a member of your family when they are in halls of residence or any other term time student accommodation where you or a member of your family are living whilst attending boarding school, college or university. The most we will pay for any one claim is the amount shown in the schedule. The most we will pay for any one item is the amount shown in the schedule.",
+          "pages": "27"
+        }
+      ],
+      "exceptions": []
+    }
+  },
+  {
+    "title": "True but irrelevant answer caught",
+    "insurer": "Policy Expert",
+    "question": "We had a power cut yesterday and everything in our chest freezer defrosted and had to be binned. Can I claim back the cost of the ruined food?",
+    "response": {
+      "label": "HALLUCINATION",
+      "model_saw": "We had a power cut yesterday and everything in our chest freezer defrosted and had to be binned. Can I claim back the cost of the ruined food?",
+      "delivered": [],
+      "fallback": "I couldn't verify an answer from your policy wording. Please speak to an adviser.",
+      "sentences": [
+        {
+          "text": "We don't cover: loss or damage which happens gradually or is caused by normal wear and tear, or loss of value.",
+          "status": "off_topic",
+          "evidence": "We don't cover: - e. loss or damage which happens gradually or is caused by normal wear and tear, or loss of value;",
+          "pages": "30"
+        },
+        {
+          "text": "Therefore, you cannot claim back the cost of the ruined food as it falls under the exclusion for loss or damage which happens gradually or is caused by normal wear and tear, or loss of value.",
+          "status": "unsupported",
+          "evidence": "- a) We will pay for accidental damage to contents while they are in your home (but not in outbuildings). We don't cover: - a. contents not inside your home; - b. loss or damage to money, clothing, food and drink; - c. loss or damage to contact or corneal lenses; - d. any loss or damage caused to hearing aids while you are swimming or bathing; - e. loss or damage which happens gradually or is caused by normal wear and tear, or loss of value; - f. loss or damage caused by domestic pets, including chewing, scratching, tearing or fouling;",
+          "pages": "30"
+        }
+      ],
+      "exceptions": []
+    }
+  }
+]
